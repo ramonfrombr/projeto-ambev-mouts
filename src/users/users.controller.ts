@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Param,
+  Delete,
+  NotFoundException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './user.entity';
 
@@ -9,7 +18,7 @@ export class UsersController {
   //get all users
   @Get()
   async findAll(): Promise<User[]> {
-    return this.usersService.findAll();
+    return await this.usersService.findAll();
   }
 
   //get user by id
@@ -26,12 +35,12 @@ export class UsersController {
   //create user
   @Post()
   async create(@Body() user: User): Promise<User> {
-    return this.usersService.create(user);
+    return await this.usersService.create(user);
   }
 
   //update user
   @Put(':id')
-  async update (@Param('id') id: number, @Body() user: User): Promise<any> {
+  async update(@Param('id') id: number, @Body() user: User): Promise<any> {
     return this.usersService.update(id, user);
   }
 
