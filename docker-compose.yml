@@ -1,12 +1,29 @@
 
 version: '3.9'
 services:
+  nextapp:
+    container_name: nextapp
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - nestapp
+    environment:
+      - API_END_POINT=http://nestapp:8082
+    networks:
+      - next-node
+
   nestapp:
     container_name: nestapp
     image: ramonfrombr/nestapp:1.0.0
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - '3000:3000'
+      - '8082:8082'
     environment:
       - DB_TYPE=postgres
       - PG_USER=postgres
@@ -16,9 +33,14 @@ services:
       - PG_HOST=db
     depends_on:
       - db
+    networks:
+      - node-postgres
+      - next-node
+
   db:
     container_name: db
     image: postgres:12
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -27,5 +49,12 @@ services:
       - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - node-postgres
+
+networks:
+  next-node:
+  node-postgres:
+
 volumes:
   pgdata: {}
