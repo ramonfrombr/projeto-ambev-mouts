@@ -1,40 +1,28 @@
+// app/posts/posts.tsx
+'use client'
 import Link from "next/link";
-import RemoveBtn from "./RemoveButton";
 import { FaPencilAlt } from "react-icons/fa";
 
-export interface IUser {
-  id: number;
-  name: string;
-  email: string;
-}
 
-const getUsers: () => Promise<IUser[]> = async () => {
-  try {
-    const res = await fetch("http://localhost:8082/users", {
-      cache: "no-store",
-    });
+import { useQuery } from "@tanstack/react-query";
+import RemoveBtn from "@/components/RemoveButton";
+import { IUser } from "@/types/iUser";
+import { getUsers } from "@/lib/getUsers";
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch topics");
-    }
-    const data: IUser[] = await res.json();
-    console.log("data > ", data);
-    return data;
-  } catch (error) {
-    console.log("Error loading topics:", error);
-    return [];
-  }
-};
+export default function UsersList() {
+  const {  isPending, error, data } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => getUsers(),
+  });
 
-const UsersList = async () => {
-  const users = await getUsers();
+  if (isPending) return 'Loading...'
+
+  if (error) return 'An error has occurred: ' + error.message
+
   return (
     <>
-      {users.map((n: IUser) => (
-        <div
-          key={n.id}
-          className="p-4 border border-slate-300 my-3 flex justify-between gap-5 items-start"
-        >
+      {data.map((n: IUser) => (
+        <div key={n.id} className="p-4 border border-slate-300 my-3 flex justify-between gap-5 items-start">
           <div>
             <h2 className="fonr-bold text-2xl">{n.name}</h2>
             <div> {n.email}</div>
@@ -49,6 +37,5 @@ const UsersList = async () => {
         </div>
       ))}
     </>
-  );
-};
-export default UsersList;
+  )
+}

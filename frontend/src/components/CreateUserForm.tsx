@@ -2,26 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const CreateUserForm = () => {
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim()) {
-      alert("Both fields are required.");
-      return;
-    }
-
-    try {
+  const mutation = useMutation({
+    mutationFn: async (newUser: {name: string, email: string}) => {
       const res = await fetch(`http://localhost:8082/users`, {
         method: "POST",
         headers: {
           "Content-type": "application/json",
         },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify(newUser),
       });
 
       if (!res.ok) {
@@ -29,32 +25,45 @@ const CreateUserForm = () => {
       }
 
       router.refresh();
-      router.push("/");
-    } catch (error) {
-      console.log(error);
-    }
-  };
+      router.push("/users");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <input
-        className="border border-slate-600 px-8 py-2"
-        type="text"
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <input
-        className="border border-slate-600 px-8 py-2"
-        type="text"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <button className="bg-slate-100 font-bold py-3 px-6 w-fit" type="submit">
-        Create User
-      </button>
-    </form>
+    <>
+      {mutation.isPending ? (
+          <>Adding user...</>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <input
+              className="border border-slate-600 px-8 py-2"
+              type="text"
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              className="border border-slate-600 px-8 py-2"
+              type="text"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <button
+              className="bg-slate-100 font-bold py-3 px-6 w-fit"
+              onClick={() => {
+                mutation.mutate({ name: name, email: email })
+              }}
+            >
+              Create User
+            </button>
+          </div>
+        )
+      }
+    </>
   );
 };
 export default CreateUserForm;

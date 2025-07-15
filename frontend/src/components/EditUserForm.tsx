@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface EditUserFormProps {
   id: string;
@@ -10,25 +11,19 @@ interface EditUserFormProps {
 }
 
 const EditUserForm = ({ id, name, email }: EditUserFormProps) => {
+  const queryClient = useQueryClient();
   const [newName, setNewName] = useState(name || "");
   const [newEmail, setNewEmail] = useState(email || "");
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!newName.trim() || !newEmail.trim()) {
-      alert("Both fields are required.");
-
-      return;
-    }
-
-    try {
+  const mutation = useMutation({
+    mutationFn: async (newUser: {name: string, email: string}) => {
       const res = await fetch(`http://localhost:8082/users/${id}`, {
         method: "PUT",
         headers: {
           "Content-type": "application/json",
         },
-        body: JSON.stringify({ name: newName, email: newEmail }),
+        body: JSON.stringify({ name: newUser.name, email: newUser.email }),
       });
 
       if (!res.ok) {
@@ -36,14 +31,15 @@ const EditUserForm = ({ id, name, email }: EditUserFormProps) => {
       }
 
       router.refresh();
-      router.push("/");
-    } catch (error) {
-      console.log(error);
-    }
-  };
+      router.push("/users");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <input
         className="border border-slate-600 px-8 py-2"
         type="text"
@@ -58,10 +54,15 @@ const EditUserForm = ({ id, name, email }: EditUserFormProps) => {
         value={newEmail}
         onChange={(e) => setNewEmail(e.target.value)}
       />
-      <button className="bg-slate-100 font-bold py-3 px-6 w-fit" type="submit">
+      <button
+        className="bg-slate-100 font-bold py-3 px-6 w-fit"
+        onClick={() => {
+          mutation.mutate({ name: newName, email: newEmail })
+        }}
+      >
         Update User
       </button>
-    </form>
+    </div>
   );
 };
 export default EditUserForm;
