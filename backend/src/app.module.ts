@@ -5,7 +5,8 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-
+import { CacheModule, CacheModuleAsyncOptions } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
 
 @Module({
   imports: [
@@ -21,6 +22,20 @@ import { ConfigModule } from '@nestjs/config';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => {
+        const store = await redisStore({
+          socket: {
+            host: 'redis',
+            port: 6379,
+          },
+        });
+        return {
+          store: () => store,
+        };
+      },
+    } as CacheModuleAsyncOptions),
   ],
   controllers: [AppController],
   providers: [AppService],

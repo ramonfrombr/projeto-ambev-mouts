@@ -1,17 +1,36 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
+import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+
+const sleep = (ms: number) => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
   async findAll(): Promise<User[]> {
-    return this.userRepository.find();
+    const usersCacheKey = 'users';
+    const cachedUsers: User[] | undefined =
+      await this.cacheManager.get(usersCacheKey);
+
+    if (cachedUsers) {
+      return cachedUsers;
+    }
+
+    await sleep(3000);
+
+    const users = this.userRepository.find();
+
+    await this.cacheManager.set(usersCacheKey, users, 1000 * 10);
+    return users;
   }
 
   async findOne(id: number): Promise<User | null> {
@@ -25,10 +44,12 @@ export class UsersService {
 
   async update(id: number, user: Partial<User>): Promise<User | null> {
     await this.userRepository.update(id, user);
+    await this.cacheManager.clear();
     return this.userRepository.findOne({ where: { id } });
   }
 
   async delete(id: number): Promise<void> {
     await this.userRepository.delete(id);
+    await this.cacheManager.clear();
   }
 }

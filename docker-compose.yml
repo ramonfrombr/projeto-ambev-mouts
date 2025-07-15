@@ -1,21 +1,6 @@
 
 version: '3.9'
 services:
-  nextapp:
-    container_name: nextapp
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    depends_on:
-      - db
-      - nestapp
-    environment:
-      - API_END_POINT=http://nestapp:8082
-    networks:
-      - next-node
-
   nestapp:
     container_name: nestapp
     image: ramonfrombr/nestapp:1.0.0
@@ -33,9 +18,9 @@ services:
       - PG_HOST=db
     depends_on:
       - db
+      - redis
     networks:
-      - node-postgres
-      - next-node
+      myapp_net:
 
   db:
     container_name: db
@@ -50,11 +35,28 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - node-postgres
+      myapp_net:
+
+  redis:    
+    image: "bitnami/redis:7.2"
+    restart: unless-stopped  
+    ports:  
+      - 6379:6379 
+    volumes:  
+      - "redis_data:/bitnami/redis/data"  
+    environment:  
+      REDIS_PASSWORD: veryhardpassword
+      REDIS_PORT: 6379 
+      REDIS_DB: 0 
+      REDIS_IO_THREADS: 4  
+      REDIS_IO_THREADS_DO_READS: yes  
+      REDIS_DISABLE_COMMANDS: FLUSHDB,FLUSHALL  
+    networks:  
+      myapp_net:
 
 networks:
-  next-node:
-  node-postgres:
+  myapp_net:
 
 volumes:
   pgdata: {}
+  redis_data:
